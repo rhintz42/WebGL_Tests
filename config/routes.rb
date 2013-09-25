@@ -1,4 +1,5 @@
 ColladaTest::Application.routes.draw do
+  get "welcome/terrain_plain"
   get "welcome/performance"
   get "welcome/voxelpainter"
   get "welcome/index"

@@ -38,12 +38,15 @@
 			var voxelPosition = new THREE.Vector3(), tmpVec = new THREE.Vector3(), normalMatrix = new THREE.Matrix3();
 			var cubeGeo, cubeMaterial, monkey, monkey_geometry, monkey_mat;
 			var i, intersector;
+      var objects;
+      var intersected_objects;
+      var INTERSECTED, SELECTED;
 
 			init();
 			animate();
 
 			function init() {
-
+        objects = [];
 				container = document.createElement( 'div' );
 				document.body.appendChild( container );
 
@@ -73,26 +76,6 @@
 				cubeMaterial = new THREE.MeshLambertMaterial( { color: 0xfeb74c, ambient: 0x00ff80, shading: THREE.FlatShading, map: THREE.ImageUtils.loadTexture( "/textures/square-outline-textured.png" ) } );
 				cubeMaterial.ambient = cubeMaterial.color;
 
-        //monkey_mat = new THREE.MeshNormalMaterial( { shading: THREE.SmoothShading } );
-
-        //objects = [];
-
-				//var loader = new THREE.JSONLoader();
-				//loader.load( '/obj/monkey.js', function ( geometry ) {
-					//geometry.computeVertexNormals();
-
-					//monkey_geometry = geometry.copy();
-
-					//monkey.position.x = 250;
-					//monkey.position.y = 450;
-					//monkey.position.z = 250;
-          //monkey.scale.x = monkey.scale.y = monkey.scale.z = 100;
-
-					//objects.push( monkey );
-
-					//scene.add( monkey );
-
-				//} );
 				// picking
 
 				projector = new THREE.Projector();
@@ -140,7 +123,7 @@
 				directionalLight.position.set( 1, 0.75, 0.5 ).normalize();
 				scene.add( directionalLight );
 
-				renderer = new THREE.WebGLRenderer( { antialias: true, preserveDrawingBuffer: true } );
+        renderer = new THREE.WebGLRenderer( { antialias: true } );//, preserveDrawingBuffer: true } );
 				renderer.setSize( window.innerWidth, window.innerHeight );
 
 				container.appendChild( renderer.domElement );
@@ -244,36 +227,26 @@
 						intersector = getRealIntersector( intersects );
 						setVoxelPosition( intersector );
             
-            monkey_mat = new THREE.MeshNormalMaterial( { shading: THREE.SmoothShading } );
+            monkey_mat = new THREE.MeshNormalMaterial();
+            monkey_mat.shading = THREE.SmoothShading
 
-            objects = [];
 
             var loader = new THREE.JSONLoader();
             loader.load( '/obj/monkey.js', function ( geometry ) {
               geometry.computeVertexNormals();
 
               monkey = new THREE.Mesh( geometry, monkey_mat )
-              //monkey.position.x = 250;
-              //monkey.position.y = 450;
-              //monkey.position.z = 250;
-              //monkey.scale.x = monkey.scale.y = monkey.scale.z = 100;
-
-              //objects.push( monkey );
-
-              //scene.add( monkey );
-              //voxelPosition.x = 250;
-              //voxelPosition.y = 450;
-              //voxelPosition.z = 250;
+              
               monkey.position.copy( voxelPosition );
+              monkey.rotation.x = 1;
+              monkey.rotation.y = 3;
 
-              //monkey.position.x = 250;
-              //monkey.position.y = 450;
-              //monkey.position.z = 250;
               monkey.scale.x = monkey.scale.y = monkey.scale.z = 100;
-
 
               monkey.matrixAutoUpdate = false;
               monkey.updateMatrix();
+              objects.push( monkey );
+              objects[0].matrixAutoUpdate = true ;
               scene.add( monkey );
 
             } );
@@ -333,14 +306,46 @@
 				if ( intersects.length > 0 ) {
 
 					intersector = getRealIntersector( intersects );
+
 					if ( intersector ) {
 
 						setVoxelPosition( intersector );
 						rollOverMesh.position = voxelPosition;
+            var obj = intersects[0].object
 
-					}
+            for(var i = 0; i < intersects.length; i += 1){
+              if(intersects[i].object instanceof THREE.Mesh) {
+                if(intersects[i].object.material instanceof THREE.MeshNormalMaterial) {
+                  intersects[i].object.material = new THREE.MeshNormalMaterial( { wireframe: true } );
+                  intersects[i].object.material.needsUpdate = true;
+                  //intersects[i].object.material.wireframe = true;
+                }
+              }
+            }
+            /*
+            for(var i = 0; i < scene.children.length; i += 1){
+              if(scene.children[i] instanceof THREE.Mesh) {
+                if(scene.children[i].material instanceof THREE.MeshNormalMaterial) {
+                  //scene.children[i].material = new THREE.MeshNormalMaterial( { shading: THREE.FlatShading } );
+                  //scene.children[i].material.needsUpdate = true;
+                }
+              }
+            }*/
+            /*
+            if(objects.length > 0) {
+                objects[0].rotation.x += .01;
+                objects[0].rotation.y += .005;
+                objects[0].material = new THREE.MeshNormalMaterial( { shading: THREE.FlatShading } );
+                objects[0].material.needsUpdate = true;
+            }*/
 
-				}
+        }
+
+        } else {
+          rollOverMesh.position.x = -10000;
+          rollOverMesh.position.y = 10000;
+          rollOverMesh.position.z = -10000;
+        }
 
 				camera.position.x = 1400 * Math.sin( THREE.Math.degToRad( theta ) );
 				camera.position.z = 1400 * Math.cos( THREE.Math.degToRad( theta ) );

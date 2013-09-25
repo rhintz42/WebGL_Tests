@@ -9,4 +9,8 @@ class WelcomeController < ApplicationController
   def voxelpainter
 
   end
+
+  def terrain_plain
+
+  end
 end
