@@ -57,6 +57,7 @@
 
 			var mesh, texture;
 
+      var globalWidth = 1500, globalDepth = 1500;
 			var worldWidth = 3, worldDepth = 3,
 			worldHalfWidth = worldWidth / 2, worldHalfDepth = worldDepth / 2;
 
@@ -86,7 +87,7 @@
 
 				camera.position.y = data[ worldHalfWidth + worldHalfDepth * worldWidth ] + 500;
 
-				var geometry = new THREE.PlaneGeometry( 1500, 1500, worldWidth - 1, worldDepth - 1 );
+				var geometry = new THREE.PlaneGeometry( globalWidth, globalDepth, worldWidth - 1, worldDepth - 1 );
 				geometry.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
 
 				for ( var i = 0, l = geometry.vertices.length; i < l; i ++ ) {
@@ -120,6 +121,7 @@
 				document.addEventListener( 'mousedown', onDocumentMouseDown, false );
 			}
 
+
 			function onDocumentMouseMove( event ) {
 
 				event.preventDefault();
@@ -129,11 +131,21 @@
 
 			}
 
+
       function getClosestVertice( obj, point ) {
         
+        var width = point.x + globalWidth/2;
+        var depth = point.z + globalDepth/2;
         
+        var widthOther = ( width + (globalWidth/4) ) / (globalWidth/2);
+        var widthPos = Math.floor(widthOther);
 
+        var depthOther = ( depth + (globalDepth/4) ) / (globalDepth/2);
+        var depthPos = Math.floor(depthOther);
+
+        return ( depthPos * worldDepth ) + widthPos;
       }
+
 
       function onDocumentMouseDown( event ) {
 
@@ -143,13 +155,14 @@
 
 				if ( intersects.length > 0 ) {
           var obj = intersects[0].object;
-
+          var posInArr = getClosestVertice( obj, intersects[0].point );
           var geometry = obj.geometry;
-          var v = geometry.vertices[0];
+          var v = geometry.vertices[posInArr];
           v.y -= 50;
           geometry.verticesNeedUpdate = true;
 				}
       }
+
 
 			function getRealIntersector( intersects ) {
 
@@ -187,6 +200,7 @@
 				return data;
 
 			}
+
 
 			function generateTexture( data, width, height ) {
 
@@ -256,7 +270,6 @@
 
 			}
 
-			//
 
 			function animate() {
 
@@ -266,6 +279,7 @@
 				stats.update();
 
 			}
+
 
 			function render() {
 
