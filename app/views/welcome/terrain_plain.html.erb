@@ -29,8 +29,13 @@
 		</style>
 	</head>
 	<body>
-    <div id="test">Hello</div>
-		<div id="container" style="width:400px; height:400px; float:left; position:relative;"><br /><br /><br /><br /><br />Generating world...</div>
+    <div id="test">
+      <form>
+        <input type="radio" name="edit_mode" value="ground">Ground<br>
+        <input type="radio" name="edit_mode" value="plant">Plant
+      </form> 
+    </div>
+    <div id="container" style="width:1500px; height:1000px; float:left; position:relative;"><br /><br /><br /><br /><br />Generating world...</div>
 		<div id="info" style="float:left"><a href="http://threejs.org" target="_blank">three.js</a> - webgl terrain demo<br />(left click: forward, right click: backward)</div>
 
 		<script src="/assets/three.min.js"></script>
@@ -58,7 +63,7 @@
 
 			var mesh, texture;
 
-      var globalWidth = 1000, globalDepth = 1000;
+      var globalWidth = 1400, globalDepth = 1400;
 			var worldWidth = 40, worldDepth = 40,
 			worldHalfWidth = worldWidth / 2, worldHalfDepth = worldDepth / 2;
 
@@ -138,7 +143,7 @@
 
 				mouse2D.x = ( event.clientX / divWidth ) * 2 - 1;
         //I added 35 here because it seems that the mouse was off if i didn't do this
-				mouse2D.y = - ( event.clientY / (divHeight+35) ) * 2 + 1;
+				mouse2D.y = - ( event.clientY / (divHeight+70) ) * 2 + 1;
 
 			}
 
@@ -148,10 +153,10 @@
         var width = point.x + globalWidth/2;
         var depth = point.z + globalDepth/2;
         
-        var widthOther = ( width + ( globalWidth/((worldWidth-1)*2) ) ) / (globalWidth/(worldWidth-1));
+        var widthOther = ( width + ( globalWidth/( (worldWidth-1)*2) ) ) / (globalWidth/(worldWidth-1));
         var widthPos = Math.floor(widthOther);
 
-        var depthOther = ( depth + ( globalDepth/((worldDepth-1)*2) ) ) / (globalDepth/(worldDepth-1));
+        var depthOther = ( depth + ( globalDepth/( (worldDepth-1)*2) ) ) / (globalDepth/(worldDepth-1));
         var depthPos = Math.floor(depthOther);
 
         return ( depthPos * worldDepth ) + widthPos;
@@ -172,7 +177,7 @@
 				voxelPosition.addVectors( intersector.point, tmpVec );
 
 				voxelPosition.x = Math.floor( voxelPosition.x / 50 ) * 50 + 25;
-				voxelPosition.y = Math.floor( voxelPosition.y / 50 ) * 50 + 25 + 75;
+				voxelPosition.y = Math.floor( voxelPosition.y / 50 ) * 50 + 25 + 60;
 				voxelPosition.z = Math.floor( voxelPosition.z / 50 ) * 50 + 25;
 
 			}
@@ -181,60 +186,56 @@
         event.preventDefault();
 
 				var intersects = raycaster.intersectObjects( scene.children );
-        /*
 				if ( intersects.length > 0 ) {
-
-					intersector = intersects[0];
-
-					// create cube
-          setVoxelPosition( intersector );
+          if ( $('input:radio[name=edit_mode]:checked').val() == 'plant' ) {
           
-          monkey_mat = new THREE.MeshNormalMaterial();
-          monkey_mat.shading = THREE.SmoothShading
+            intersector = intersects[0];
 
-
-          var loader = new THREE.JSONLoader();
-          loader.load( '/obj/monkey.js', function ( geometry ) {
-            geometry.computeVertexNormals();
-
-            monkey = new THREE.Mesh( geometry, monkey_mat )
+            // create cube
+            setVoxelPosition( intersector );
             
-            monkey.position.copy( voxelPosition );
-            //monkey.rotation.x = 1;
-            //monkey.rotation.y = 3;
+            monkey_mat = new THREE.MeshNormalMaterial();
+            monkey_mat.shading = THREE.SmoothShading
 
-            monkey.scale.x = monkey.scale.y = monkey.scale.z = 100;
 
-            monkey.matrixAutoUpdate = false;
-            monkey.updateMatrix();
-            objects.push( monkey );
-            objects[0].matrixAutoUpdate = true ;
-            scene.add( monkey );
+            var loader = new THREE.JSONLoader();
+            loader.load( '/obj/monkey.js', function ( geometry ) {
+              geometry.computeVertexNormals();
 
-          } );
+              monkey = new THREE.Mesh( geometry, monkey_mat )
+              
+              monkey.position.copy( voxelPosition );
+              //monkey.rotation.x = 1;
+              //monkey.rotation.y = 3;
 
-        }
-        */
-        
-				event.preventDefault();
+              monkey.scale.x = monkey.scale.y = monkey.scale.z = 100;
 
-				var intersects = raycaster.intersectObjects( scene.children );
+              monkey.matrixAutoUpdate = false;
+              monkey.updateMatrix();
+              objects.push( monkey );
+              objects[0].matrixAutoUpdate = true ;
+              scene.add( monkey );
 
-				if ( intersects.length > 0 ) {
-          var obj = intersects[0].object;
-          var posInArr = getClosestVertice( obj, intersects[0].point );
-          var geometry = obj.geometry;
-          for(var i = -3; i <= 3; i ++) {
-            for(var j = -3; j <= 3; j ++) {
-              var newPos = posInArr + (i * worldDepth) + j;
-              var size = worldDepth * worldWidth;
-              if( newPos >= 0 && newPos < size ) {
-                var v = geometry.vertices[newPos];
-                v.y += 50;
+            } );
+
+          } else {
+            
+          
+            var obj = intersects[0].object;
+            var posInArr = getClosestVertice( obj, intersects[0].point );
+            var geometry = obj.geometry;
+            for(var i = -3; i <= 3; i ++) {
+              for(var j = -3; j <= 3; j ++) {
+                var newPos = posInArr + (i * worldDepth) + j;
+                var size = worldDepth * worldWidth;
+                if( newPos >= 0 && newPos < size ) {
+                  var v = geometry.vertices[newPos];
+                  v.y += 50;
+                }
               }
             }
+            geometry.verticesNeedUpdate = true;
           }
-          geometry.verticesNeedUpdate = true;
 				}
         
       }
