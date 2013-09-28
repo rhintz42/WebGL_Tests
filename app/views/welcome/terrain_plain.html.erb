@@ -123,12 +123,12 @@
 				rollOverMesh = new THREE.Mesh( rollOverGeo, rollOverMaterial );
 				scene.add( rollOverMesh );
 
-        var width = globalWidth/8;
-        var depth = globalDepth/8;
-        var widthPoints = (worldWidth/8) - 1;
-        var depthPoints = (worldDepth/8) - 1;
+        var width = globalWidth/10;
+        var depth = globalDepth/10;
+        var widthPoints = (worldWidth/8);
+        var depthPoints = (worldDepth/8);
 
-				var geometry2 = new THREE.PlaneGeometry( width, depth, widthPoints, depthPoints );
+				var geometry2 = new THREE.PlaneGeometry( width, depth, widthPoints - 1, depthPoints - 1 );
 				geometry2.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
 
 				for ( var i = 0, l = geometry2.vertices.length; i < l; i ++ ) {
@@ -203,10 +203,14 @@
 				tmpVec.applyMatrix3( normalMatrix ).normalize();
 
 				voxelPosition.addVectors( intersector.point, tmpVec );
-
+/*
 				voxelPosition.x = Math.floor( voxelPosition.x / 50 ) * 50 + 25;
 				voxelPosition.y = Math.floor( voxelPosition.y / 50 ) * 50 + 1;// + 25;
 				voxelPosition.z = Math.floor( voxelPosition.z / 50 ) * 50 + 25;
+*/
+				voxelPosition.x = Math.floor( voxelPosition.x / 40 ) * 40 + 20;
+				voxelPosition.y = Math.floor( voxelPosition.y / 40 ) * 40 + 1;// + 25;
+				voxelPosition.z = Math.floor( voxelPosition.z / 40 ) * 40 + 20;
 
 			}
 
@@ -251,8 +255,8 @@
             var pos = getClosestVertice( obj, intersects[0].point );
             var posInArr = getPositionInGroundArray( pos, worldDepth );
             var geometry = obj.geometry;
-            for(var i = -3; i <= 3; i ++) {
-              for(var j = -3; j <= 3; j ++) {
+            for(var i = -2; i <= 2; i ++) {
+              for(var j = -2; j <= 2; j ++) {
                 var newPos = posInArr + (i * worldDepth) + j;
                 var size = worldDepth * worldWidth;
                 if( newPos >= 0 && newPos < size ) {
@@ -521,8 +525,12 @@
                 if(newPos.x >= 0 && newPos.x < 40 && newPos.z >= 0 && newPos.z < 40) {
                   //positions.push(newPos);
                   posOnGround = getPositionInGroundArray( newPos, 40 );
+                  groundX = mesh.geometry.vertices[posOnGround].x;
                   groundY = mesh.geometry.vertices[posOnGround].y;
+                  groundZ = mesh.geometry.vertices[posOnGround].z;
+                  mesh2.geometry.vertices[posOnHoverObject].x = groundX;
                   mesh2.geometry.vertices[posOnHoverObject].y = groundY + 1;
+                  mesh2.geometry.vertices[posOnHoverObject].z = groundZ;
                 } else {
                   mesh2.geometry.vertices[posOnHoverObject].y = 11;
                   //positions.push(new Object());
@@ -531,7 +539,7 @@
             }
 
             mesh2.geometry.verticesNeedUpdate = true;
-            mesh2.position = voxelPosition
+            //mesh2.position = voxelPosition
         }
 
         } else {
