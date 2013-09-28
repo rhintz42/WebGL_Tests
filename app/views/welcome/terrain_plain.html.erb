@@ -16,7 +16,7 @@
 			}
 
 			#info {
-				position: relative;
+				position: absolute;
 				top: 0px; width: 10%;
 				padding: 5px;
 			}
@@ -35,8 +35,7 @@
         <input type="radio" name="edit_mode" value="plant">Plant
       </form> 
     </div>
-    <div id="container" style="width:1500px; height:1000px; float:left; position:relative;"><br /><br /><br /><br /><br />Generating world...</div>
-		<div id="info" style="float:left"><a href="http://threejs.org" target="_blank">three.js</a> - webgl terrain demo<br />(left click: forward, right click: backward)</div>
+    <div id="container" style="width:1500px; height:1000px; float:left; position:absolute;"><br /><br /><br /><br /><br />Generating world...</div>
 
 		<script src="/assets/three.min.js"></script>
 
@@ -61,7 +60,7 @@
 
 			var camera, controls, scene, renderer;
 
-			var mesh, texture;
+			var mesh, mesh2, texture;
 
       var globalWidth = 1400, globalDepth = 1400;
 			var worldWidth = 40, worldDepth = 40,
@@ -73,6 +72,7 @@
       var raycaster;
       var objects;
       var voxelPosition = new THREE.Vector3(), tmpVec = new THREE.Vector3(), normalMatrix = new THREE.Matrix3();
+      var rollOverMesh;
 
       var divHeight, divWidth;
 
@@ -116,6 +116,32 @@
 				mesh = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial( { map: texture } ) );
 				scene.add( mesh );
 
+				// roll-over helpers
+        // This does the display of the hover cube
+				rollOverGeo = new THREE.CubeGeometry( 50, 0, 50 );
+				rollOverMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000, opacity: 0.5, transparent: true } );
+				rollOverMesh = new THREE.Mesh( rollOverGeo, rollOverMaterial );
+				scene.add( rollOverMesh );
+
+        var width = globalWidth/8;
+        var depth = globalDepth/8;
+        var widthPoints = (worldWidth/8) - 1;
+        var depthPoints = (worldDepth/8) - 1;
+
+				var geometry2 = new THREE.PlaneGeometry( width, depth, widthPoints, depthPoints );
+				geometry2.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
+
+				for ( var i = 0, l = geometry2.vertices.length; i < l; i ++ ) {
+					geometry2.vertices[ i ].y = data[ i ] + 1;
+
+				}
+
+				texture2 = new THREE.Texture( generateTexture( data, worldWidth/5, worldDepth/5 ), new THREE.UVMapping(), THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping );
+				texture2.needsUpdate = true;
+
+				mesh2 = new THREE.Mesh( geometry2, rollOverMaterial );//new THREE.MeshBasicMaterial( { map: texture2 } ) );
+				scene.add( mesh2 );
+
 				renderer = new THREE.WebGLRenderer();
 				//renderer.setSize( window.innerWidth, window.innerHeight );
 				renderer.setSize( divWidth, divHeight );
@@ -123,6 +149,7 @@
 				container.innerHTML = "";
 
 				container.appendChild( renderer.domElement );
+
 
 				stats = new Stats();
 				stats.domElement.style.position = 'absolute';
@@ -143,7 +170,7 @@
 
 				mouse2D.x = ( event.clientX / divWidth ) * 2 - 1;
         //I added 35 here because it seems that the mouse was off if i didn't do this
-				mouse2D.y = - ( event.clientY / (divHeight+70) ) * 2 + 1;
+				mouse2D.y = - ( (event.clientY-45) / (divHeight) ) * 2 + 1;
 
 			}
 
@@ -152,24 +179,25 @@
         
         var width = point.x + globalWidth/2;
         var depth = point.z + globalDepth/2;
+
+        var pos = {}
         
         var widthOther = ( width + ( globalWidth/( (worldWidth-1)*2) ) ) / (globalWidth/(worldWidth-1));
-        var widthPos = Math.floor(widthOther);
+        pos.x = Math.floor(widthOther);
 
         var depthOther = ( depth + ( globalDepth/( (worldDepth-1)*2) ) ) / (globalDepth/(worldDepth-1));
-        var depthPos = Math.floor(depthOther);
+        pos.z = Math.floor(depthOther);
+        
+        return pos
+        //return ( depthPos * worldDepth ) + widthPos;
+      }
 
-        return ( depthPos * worldDepth ) + widthPos;
+      function getPositionInGroundArray( pos, depth ) {
+        return ( pos.z * depth ) + pos.x;
       }
       
       function setVoxelPosition( intersector ) {
-        //if(intersector == null || intersector.object == null || intersector.object.matrixWorld == null)
-        //  return null
-
 				normalMatrix.getNormalMatrix( intersector.object.matrixWorld );
-
-        //if(intersector.face == null || intersector.face.normal == null)
-        //  return null
 
 				tmpVec.copy( intersector.face.normal );
 				tmpVec.applyMatrix3( normalMatrix ).normalize();
@@ -177,7 +205,7 @@
 				voxelPosition.addVectors( intersector.point, tmpVec );
 
 				voxelPosition.x = Math.floor( voxelPosition.x / 50 ) * 50 + 25;
-				voxelPosition.y = Math.floor( voxelPosition.y / 50 ) * 50 + 25 + 60;
+				voxelPosition.y = Math.floor( voxelPosition.y / 50 ) * 50 + 1;// + 25;
 				voxelPosition.z = Math.floor( voxelPosition.z / 50 ) * 50 + 25;
 
 			}
@@ -189,7 +217,7 @@
 				if ( intersects.length > 0 ) {
           if ( $('input:radio[name=edit_mode]:checked').val() == 'plant' ) {
           
-            intersector = intersects[0];
+            intersector = getRealIntersector( intersects );
 
             // create cube
             setVoxelPosition( intersector );
@@ -205,8 +233,6 @@
               monkey = new THREE.Mesh( geometry, monkey_mat )
               
               monkey.position.copy( voxelPosition );
-              //monkey.rotation.x = 1;
-              //monkey.rotation.y = 3;
 
               monkey.scale.x = monkey.scale.y = monkey.scale.z = 100;
 
@@ -221,8 +247,9 @@
           } else {
             
           
-            var obj = intersects[0].object;
-            var posInArr = getClosestVertice( obj, intersects[0].point );
+            var obj = getRealIntersector( intersects ).object;
+            var pos = getClosestVertice( obj, intersects[0].point );
+            var posInArr = getPositionInGroundArray( pos, worldDepth );
             var geometry = obj.geometry;
             for(var i = -3; i <= 3; i ++) {
               for(var j = -3; j <= 3; j ++) {
@@ -269,7 +296,7 @@
          */
         for ( var i = 0; i < size; i ++ ) {
 
-          data[ i ] = 10;
+          data[ i ] = 0;
 
         }
  
@@ -436,7 +463,25 @@
 				return canvasScaled;
 
 			}
-*/
+      */
+      
+      function getRealIntersector( intersects ) {
+
+				for( i = 0; i < intersects.length; i++ ) {
+
+					intersector = intersects[ i ];
+
+					if ( intersector.object != mesh2 ) {
+
+						return intersector;
+
+					}
+
+				}
+
+				return null;
+
+			}
 
 			function animate() {
 
@@ -451,6 +496,51 @@
 			function render() {
 
 				raycaster = projector.pickingRay( mouse2D.clone(), camera );
+        
+        var intersects = raycaster.intersectObjects( scene.children );
+        
+				if ( intersects.length > 0 ) {
+
+					intersector = getRealIntersector( intersects );
+
+					if ( intersector ) {
+
+						setVoxelPosition( intersector );
+						//rollOverMesh.position = voxelPosition;
+            pos = getClosestVertice( intersector.object, intersector.point )
+            //var positions = []
+            var forPos = new Object();
+            for(var i = -2; i <= 2; i++) {
+              for(var j = -2; j <= 2; j++) {
+                forPos.x = i+2;
+                forPos.z = j+2;
+                var newPos = new Object();
+                newPos.x = pos.x + i;
+                newPos.z = pos.z + j;
+                var posOnHoverObject = getPositionInGroundArray( forPos, 5 );
+                if(newPos.x >= 0 && newPos.x < 40 && newPos.z >= 0 && newPos.z < 40) {
+                  //positions.push(newPos);
+                  posOnGround = getPositionInGroundArray( newPos, 40 );
+                  groundY = mesh.geometry.vertices[posOnGround].y;
+                  mesh2.geometry.vertices[posOnHoverObject].y = groundY + 1;
+                } else {
+                  mesh2.geometry.vertices[posOnHoverObject].y = 11;
+                  //positions.push(new Object());
+                }
+              }
+            }
+
+            mesh2.geometry.verticesNeedUpdate = true;
+            mesh2.position = voxelPosition
+        }
+
+        } else {
+          rollOverMesh.position.x = -10000;
+          rollOverMesh.position.y = 10000;
+          rollOverMesh.position.z = -10000;
+        }
+        
+
 				//controls.update( clock.getDelta() );
         camera.rotation.y = .3;
         camera.lookAt( scene.position );
