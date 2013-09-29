@@ -1,34 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<title>three.js webgl - geometry - terrain</title>
-		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-		<style>
-			body {
-				color: #61443e;
-				font-family:Monospace;
-				font-size:13px;
+  <head>
+    <title>three.js webgl - geometry - terrain</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+      body {
+        color: #61443e;
+        font-family:Monospace;
+        font-size:13px;
 
-				background-color: #bfd1e5;
-				margin: 0px;
-				overflow: hidden;
-			}
+        background-color: #bfd1e5;
+        margin: 0px;
+        overflow: hidden;
+      }
 
-			#info {
-				position: absolute;
-				top: 0px; width: 10%;
-				padding: 5px;
-			}
+      #info {
+        position: absolute;
+        top: 0px; width: 10%;
+        padding: 5px;
+      }
 
-			a {
-
-				color: #a06851;
-			}
-
-		</style>
-	</head>
-	<body>
+      a {
+        color: #a06851;
+      }
+    </style>
+  </head>
+  <body>
     <div id="test">
       <form>
         <input type="radio" name="edit_mode" value="ground">Ground<br>
@@ -37,34 +35,33 @@
     </div>
     <div id="container" style="width:1500px; height:1000px; float:left; position:absolute;"><br /><br /><br /><br /><br />Generating world...</div>
 
-		<script src="/assets/three.min.js"></script>
+    <script src="/assets/three.min.js"></script>
 
     <script src="/assets/controls/TrackballControls.js"></script>
-		<script src="/assets/controls/FirstPersonControls.js"></script>
+    <script src="/assets/controls/FirstPersonControls.js"></script>
 
-		<script src="/assets/ImprovedNoise.js"></script>
-		<script src="/assets/Detector.js"></script>
-		<script src="/assets/libs/stats.min.js"></script>
-		<script src="/assets/ColladaLoader.js"></script>
+    <script src="/assets/ImprovedNoise.js"></script>
+    <script src="/assets/Detector.js"></script>
+    <script src="/assets/libs/stats.min.js"></script>
+    <script src="/assets/ColladaLoader.js"></script>
 
-		<script>
+    <script>
 
-			if ( ! Detector.webgl ) {
+      if ( ! Detector.webgl ) {
+        Detector.addGetWebGLMessage();
+        document.getElementById( 'container' ).innerHTML = "";
 
-				Detector.addGetWebGLMessage();
-				document.getElementById( 'container' ).innerHTML = "";
+      }
 
-			}
+      var container, stats;
 
-			var container, stats;
+      var camera, controls, scene, renderer;
 
-			var camera, controls, scene, renderer;
-
-			var mesh, mesh2, texture;
+      var mesh, mesh2, texture;
 
       var globalWidth = 1400, globalDepth = 1400;
-			var worldWidth = 40, worldDepth = 40,
-			worldHalfWidth = worldWidth / 2, worldHalfDepth = worldDepth / 2;
+      var worldWidth = 40, worldDepth = 40,
+	  worldHalfWidth = worldWidth / 2, worldHalfDepth = worldDepth / 2;
 
       var clock = new THREE.Clock();
       var mouse2D;
@@ -76,103 +73,116 @@
 
       var divHeight, divWidth;
 
-			init();
-			animate();
+      init();
+      animate();
 
-			function init() {
+      function init() {
         objects = [];
-				container = document.getElementById( 'container' );
+        container = document.getElementById( 'container' );
 
         divHeight = container.clientHeight;
         divWidth = container.clientWidth;
 
-				//camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 20000 );
-				camera = new THREE.PerspectiveCamera( 60, divWidth / divHeight, 1, 20000 );
+        //camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 20000 );
+        camera = new THREE.PerspectiveCamera( 60,
+                                              divWidth / divHeight,
+                                              1,
+                                              20000 );
         camera.position.y = 1200;
         camera.position.z = 1400;
 
-				scene = new THREE.Scene();
+        scene = new THREE.Scene();
 
-				controls = new THREE.FirstPersonControls( camera );
-				controls.movementSpeed = 1000;
-				controls.lookSpeed = 0.1;
+        controls = new THREE.FirstPersonControls( camera );
+        controls.movementSpeed = 1000;
+        controls.lookSpeed = 0.1;
 
-				data = generateHeight( worldWidth, worldDepth );
+        data = generateHeight( worldWidth, worldDepth );
 
-				camera.position.y = data[ worldHalfWidth + worldHalfDepth * worldWidth ] + 500;
+        camera.position.y = data[ worldHalfWidth + worldHalfDepth * worldWidth ] + 500;
 
-				var geometry = new THREE.PlaneGeometry( globalWidth, globalDepth, worldWidth - 1, worldDepth - 1 );
-				geometry.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
+        var geometry = new THREE.PlaneGeometry( globalWidth,
+                                                globalDepth,
+                                                worldWidth - 1,
+                                                worldDepth - 1 );
+        geometry.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
 
-				for ( var i = 0, l = geometry.vertices.length; i < l; i ++ ) {
+        for ( var i = 0, l = geometry.vertices.length; i < l; i ++ ) {
+          geometry.vertices[ i ].y = data[ i ] * 10;
+        }
 
-					geometry.vertices[ i ].y = data[ i ] * 10;
+        texture = new THREE.Texture( generateTexture( data, worldWidth, worldDepth ),
+                                     new THREE.UVMapping(),
+                                     THREE.ClampToEdgeWrapping,
+                                     THREE.ClampToEdgeWrapping );
+        texture.needsUpdate = true;
 
-				}
+        mesh = new THREE.Mesh( geometry,
+                               new THREE.MeshBasicMaterial( { map: texture } ) );
+        scene.add( mesh );
 
-				texture = new THREE.Texture( generateTexture( data, worldWidth, worldDepth ), new THREE.UVMapping(), THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping );
-				texture.needsUpdate = true;
-
-				mesh = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial( { map: texture } ) );
-				scene.add( mesh );
-
-				// roll-over helpers
+        // roll-over helpers
         // This does the display of the hover cube
-				rollOverGeo = new THREE.CubeGeometry( 50, 0, 50 );
-				rollOverMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000, opacity: 0.5, transparent: true } );
-				rollOverMesh = new THREE.Mesh( rollOverGeo, rollOverMaterial );
-				scene.add( rollOverMesh );
+        rollOverGeo = new THREE.CubeGeometry( 50, 0, 50 );
+        rollOverMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000,
+                                                          opacity: 0.5,
+                                                          transparent: true } );
+        rollOverMesh = new THREE.Mesh( rollOverGeo,
+                                       rollOverMaterial );
+        scene.add( rollOverMesh );
 
         var width = globalWidth/10;
         var depth = globalDepth/10;
         var widthPoints = (worldWidth/8);
         var depthPoints = (worldDepth/8);
 
-				var geometry2 = new THREE.PlaneGeometry( width, depth, widthPoints - 1, depthPoints - 1 );
-				geometry2.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
+        var geometry2 = new THREE.PlaneGeometry( width, 
+                                                 depth,
+                                                 widthPoints - 1,
+                                                 depthPoints - 1 );
+        geometry2.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
 
-				for ( var i = 0, l = geometry2.vertices.length; i < l; i ++ ) {
-					geometry2.vertices[ i ].y = data[ i ] + 1;
+        for ( var i = 0, l = geometry2.vertices.length; i < l; i ++ ) {
+          geometry2.vertices[ i ].y = data[ i ] + 1;
+        }
 
-				}
+        texture2 = new THREE.Texture( generateTexture( data, worldWidth/5, worldDepth/5 ),
+                                      new THREE.UVMapping(),
+                                      THREE.ClampToEdgeWrapping,
+                                      THREE.ClampToEdgeWrapping );
+        texture2.needsUpdate = true;
 
-				texture2 = new THREE.Texture( generateTexture( data, worldWidth/5, worldDepth/5 ), new THREE.UVMapping(), THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping );
-				texture2.needsUpdate = true;
+        mesh2 = new THREE.Mesh( geometry2, rollOverMaterial );//new THREE.MeshBasicMaterial( { map: texture2 } ) );
+        scene.add( mesh2 );
 
-				mesh2 = new THREE.Mesh( geometry2, rollOverMaterial );//new THREE.MeshBasicMaterial( { map: texture2 } ) );
-				scene.add( mesh2 );
+        renderer = new THREE.WebGLRenderer();
+        //renderer.setSize( window.innerWidth, window.innerHeight );
+        renderer.setSize( divWidth, divHeight );
 
-				renderer = new THREE.WebGLRenderer();
-				//renderer.setSize( window.innerWidth, window.innerHeight );
-				renderer.setSize( divWidth, divHeight );
+        container.innerHTML = "";
 
-				container.innerHTML = "";
+        container.appendChild( renderer.domElement );
 
-				container.appendChild( renderer.domElement );
-
-
-				stats = new Stats();
-				stats.domElement.style.position = 'absolute';
-				stats.domElement.style.top = '0px';
-				container.appendChild( stats.domElement );
+        stats = new Stats();
+        stats.domElement.style.position = 'absolute';
+        stats.domElement.style.top = '0px';
+        container.appendChild( stats.domElement );
         
         mouse2D = new THREE.Vector3( 0, 10000, 0.5 );
-				projector = new THREE.Projector();
+        projector = new THREE.Projector();
 
-				document.addEventListener( 'mousemove', onDocumentMouseMove, false );
-				document.addEventListener( 'mousedown', onDocumentMouseDown, false );
-			}
+        document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+        document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+      }
 
 
-			function onDocumentMouseMove( event ) {
+      function onDocumentMouseMove( event ) {
+        event.preventDefault();
 
-				event.preventDefault();
-
-				mouse2D.x = ( event.clientX / divWidth ) * 2 - 1;
+        mouse2D.x = ( event.clientX / divWidth ) * 2 - 1;
         //I added 35 here because it seems that the mouse was off if i didn't do this
-				mouse2D.y = - ( (event.clientY-45) / (divHeight) ) * 2 + 1;
-
-			}
+        mouse2D.y = - ( (event.clientY-45) / (divHeight) ) * 2 + 1;
+      }
 
 
       function getClosestVertice( obj, point ) {
@@ -189,36 +199,33 @@
         pos.z = Math.floor(depthOther);
         
         return pos
-        //return ( depthPos * worldDepth ) + widthPos;
       }
+
 
       function getPositionInGroundArray( pos, depth ) {
         return ( pos.z * depth ) + pos.x;
       }
       
+
       function setVoxelPosition( intersector ) {
-				normalMatrix.getNormalMatrix( intersector.object.matrixWorld );
+        normalMatrix.getNormalMatrix( intersector.object.matrixWorld );
 
-				tmpVec.copy( intersector.face.normal );
-				tmpVec.applyMatrix3( normalMatrix ).normalize();
+        tmpVec.copy( intersector.face.normal );
+        tmpVec.applyMatrix3( normalMatrix ).normalize();
 
-				voxelPosition.addVectors( intersector.point, tmpVec );
-/*
-				voxelPosition.x = Math.floor( voxelPosition.x / 50 ) * 50 + 25;
-				voxelPosition.y = Math.floor( voxelPosition.y / 50 ) * 50 + 1;// + 25;
-				voxelPosition.z = Math.floor( voxelPosition.z / 50 ) * 50 + 25;
-*/
-				voxelPosition.x = Math.floor( voxelPosition.x / 40 ) * 40 + 20;
-				voxelPosition.y = Math.floor( voxelPosition.y / 40 ) * 40 + 1;// + 25;
-				voxelPosition.z = Math.floor( voxelPosition.z / 40 ) * 40 + 20;
+        voxelPosition.addVectors( intersector.point, tmpVec );
 
-			}
+        voxelPosition.x = Math.floor( voxelPosition.x / 40 ) * 40 + 20;
+        voxelPosition.y = Math.floor( voxelPosition.y / 40 ) * 40 + 1;
+        voxelPosition.z = Math.floor( voxelPosition.z / 40 ) * 40 + 20;
+      }
+
 
       function onDocumentMouseDown( event ) {
         event.preventDefault();
 
-				var intersects = raycaster.intersectObjects( scene.children );
-				if ( intersects.length > 0 ) {
+        var intersects = raycaster.intersectObjects( scene.children );
+        if ( intersects.length > 0 ) {
           if ( $('input:radio[name=edit_mode]:checked').val() == 'plant' ) {
           
             intersector = getRealIntersector( intersects );
@@ -249,8 +256,6 @@
             } );
 
           } else {
-            
-          
             var obj = getRealIntersector( intersects ).object;
             var pos = getClosestVertice( obj, intersects[0].point );
             var posInArr = getPositionInGroundArray( pos, worldDepth );
@@ -267,252 +272,113 @@
             }
             geometry.verticesNeedUpdate = true;
           }
-				}
-        
+        }
       }
 
 
       function generateHeight( width, height ) {
+        var size = width * height, data = new Float32Array( size );
  
-        var size = width * height, data = new Float32Array( size ),
-         perlin = new ImprovedNoise(), quality = 1, z = Math.random() * 100;
- 
-        /*
-         for ( var i = 0; i < size; i ++ ) {
- 
-           data[ i ] = 0
- 
-         }
- 
-         for ( var j = 0; j < 4; j ++ ) {
- 
-           for ( var i = 0; i < size; i ++ ) {
- 
-             var x = i % width, y = ~~ ( i / width );
-             data[ i ] += Math.abs( perlin.noise( x / quality, y / quality, z ) * quality * 1.75 );
- 
- 
-           }
- 
-           quality *= 5;
- 
-         }
-         */
         for ( var i = 0; i < size; i ++ ) {
-
           data[ i ] = 0;
+        }
+        return data;
+      }
 
+
+      function generateTexture( data, width, height ) {
+        var canvas, canvasScaled, context, image, imageData,
+        level, diff, vector3, sun, shade;
+ 
+        vector3 = new THREE.Vector3( 0, 0, 0 );
+ 
+        sun = new THREE.Vector3( 1, 1, 1 );
+        sun.normalize();
+ 
+        canvas = document.createElement( 'canvas' );
+        canvas.width = width;
+        canvas.height = height;
+ 
+        context = canvas.getContext( '2d' );
+        context.fillStyle = '#000';
+        context.fillRect( 0, 0, width, height );
+ 
+        image = context.getImageData( 0, 0, canvas.width, canvas.height );
+        imageData = image.data;
+ 
+        for ( var i = 0, j = 0, l = imageData.length; i < l; i += 4, j ++ ) {
+          vector3.x = data[ j - 2 ] - data[ j + 2 ];
+          vector3.y = 2;
+          vector3.z = data[ j - width * 2 ] - data[ j + width * 2 ];
+          vector3.normalize();
+ 
+          shade = vector3.dot( sun );
+ 
+          imageData[ i ] = ( 96 + shade * 128 ) * ( 0.5 + data[ j ] * 0.007 );
+          imageData[ i + 1 ] = ( 32 + shade * 96 ) * ( 0.5 + data[ j ] * 0.007 );
+          imageData[ i + 2 ] = ( shade * 96 ) * ( 0.5 + data[ j ] * 0.007 );
         }
  
-         return data;
+        context.putImageData( image, 0, 0 );
  
-       }
-
-
-/*
-			function generateHeight( width, height ) {
-
-				var size = width * height, data = new Float32Array( size );
-
-        for(var i = 0; i < size; i ++) {
-          data[i] = 10;
+        // Scaled 4x
+ 
+        canvasScaled = document.createElement( 'canvas' );
+        canvasScaled.width = width * 4;
+        canvasScaled.height = height * 4;
+ 
+        context = canvasScaled.getContext( '2d' );
+        context.scale( 4, 4 );
+        context.drawImage( canvas, 0, 0 );
+ 
+        image = context.getImageData( 0, 0, canvasScaled.width, canvasScaled.height );
+        imageData = image.data;
+ 
+        for ( var i = 0, l = imageData.length; i < l; i += 4 ) {
+          var v = ~~ ( Math.random() * 5 );
+ 
+          imageData[ i ] += v;
+          imageData[ i + 1 ] += v;
+          imageData[ i + 2 ] += v;
         }
-        /*
-        //data[0] = 36.3;
-        //data[1] = -15.5;
-        //data[2] = 18.2;
-        //data[3] = 19.3;
-        //data[4] = 3.4;
-        //data[5] = 2.96;
-        //data[6] = 1.35;
-        //data[7] = 14.34;
-        //data[8] = 24.65;
-        
-				return data;
-
-			}
-*/
-
-       function generateTexture( data, width, height ) {
+        context.putImageData( image, 0, 0 );
  
-         var canvas, canvasScaled, context, image, imageData,
-         level, diff, vector3, sun, shade;
- 
-         vector3 = new THREE.Vector3( 0, 0, 0 );
- 
-         sun = new THREE.Vector3( 1, 1, 1 );
-         sun.normalize();
- 
-         canvas = document.createElement( 'canvas' );
-         canvas.width = width;
-         canvas.height = height;
- 
-         context = canvas.getContext( '2d' );
-         context.fillStyle = '#000';
-         context.fillRect( 0, 0, width, height );
- 
-         image = context.getImageData( 0, 0, canvas.width, canvas.height );
-         imageData = image.data;
- 
-         for ( var i = 0, j = 0, l = imageData.length; i < l; i += 4, j ++ ) {
- 
-           vector3.x = data[ j - 2 ] - data[ j + 2 ];
-           vector3.y = 2;
-           vector3.z = data[ j - width * 2 ] - data[ j + width * 2 ];
-           vector3.normalize();
- 
-           shade = vector3.dot( sun );
- 
-           imageData[ i ] = ( 96 + shade * 128 ) * ( 0.5 + data[ j ] * 0.007 );
-           imageData[ i + 1 ] = ( 32 + shade * 96 ) * ( 0.5 + data[ j ] * 0.007 );
-           imageData[ i + 2 ] = ( shade * 96 ) * ( 0.5 + data[ j ] * 0.007 );
-         }
- 
-         context.putImageData( image, 0, 0 );
- 
-         // Scaled 4x
- 
-         canvasScaled = document.createElement( 'canvas' );
-         canvasScaled.width = width * 4;
-         canvasScaled.height = height * 4;
- 
-         context = canvasScaled.getContext( '2d' );
-         context.scale( 4, 4 );
-         context.drawImage( canvas, 0, 0 );
- 
-         image = context.getImageData( 0, 0, canvasScaled.width, canvasScaled.height );
-         imageData = image.data;
- 
-         for ( var i = 0, l = imageData.length; i < l; i += 4 ) {
- 
-           var v = ~~ ( Math.random() * 5 );
- 
-           imageData[ i ] += v;
-           imageData[ i + 1 ] += v;
-           imageData[ i + 2 ] += v;
- 
-         }
- 
-         context.putImageData( image, 0, 0 );
- 
-         return canvasScaled;
- 
-       }
+        return canvasScaled;
+      }
 
-/*
-			function generateTexture( data, width, height ) {
-
-				var canvas, canvasScaled, context, image, imageData,
-				level, diff, vector3, sun, shade;
-
-				vector3 = new THREE.Vector3( 0, 0, 0 );
-
-				sun = new THREE.Vector3( 1, 1, 1 );
-				sun.normalize();
-
-				canvas = document.createElement( 'canvas' );
-				canvas.width = width;
-				canvas.height = height;
-
-				context = canvas.getContext( '2d' );
-				context.fillStyle = '#a0a0a0';
-				context.fillRect( 0, 0, width, height );
-
-				image = context.getImageData( 0, 0, canvas.width, canvas.height );
-				imageData = image.data;
-
-				//for ( var i = 0, j = 0, l = imageData.length; i < l; i += 4, j ++ ) {
-				for ( var i = 0, j = 0, l = 8; i < l; i += 1, j ++ ) {
-
-					vector3.x = data[ j ];
-					vector3.y = 2;
-					vector3.z = data[ j ];
-					vector3.normalize();
-
-					shade = vector3.dot( sun );
-
-					imageData[ i ] = ( 96 + shade * 128 ) * ( 0.5 + data[ j ] * 0.007 );
-					imageData[ i + 1 ] = ( 32 + shade * 96 ) * ( 0.5 + data[ j ] * 0.007 );
-					imageData[ i + 2 ] = ( shade * 96 ) * ( 0.5 + data[ j ] * 0.007 );
-				}
-
-				context.putImageData( image, 0, 0 );
-
-				// Scaled 4x
-
-				canvasScaled = document.createElement( 'canvas' );
-				canvasScaled.width = width * 4;
-				canvasScaled.height = height * 4;
-
-				context = canvasScaled.getContext( '2d' );
-				context.scale( 4, 4 );
-				context.drawImage( canvas, 0, 0 );
-
-				image = context.getImageData( 0, 0, canvasScaled.width, canvasScaled.height );
-				imageData = image.data;
-
-				//for ( var i = 0, l = imageData.length; i < l; i += 4 ) {
-				for ( var i = 0, l = 8; i < l; i += 1 ) {
-
-					var v = 3; //~~ ( Math.random() * 5 );
-
-					imageData[ i ] += v;
-					imageData[ i + 1 ] += v;
-					imageData[ i + 2 ] += v;
-
-				}
-
-				context.putImageData( image, 0, 0 );
-
-				return canvasScaled;
-
-			}
-      */
       
       function getRealIntersector( intersects ) {
-
-				for( i = 0; i < intersects.length; i++ ) {
-
-					intersector = intersects[ i ];
-
-					if ( intersector.object != mesh2 ) {
-
-						return intersector;
-
-					}
-
-				}
-
-				return null;
-
-			}
-
-			function animate() {
-
-				requestAnimationFrame( animate );
-
-				render();
-				stats.update();
-
-			}
+        for( i = 0; i < intersects.length; i++ ) {
+          intersector = intersects[ i ];
+          if ( intersector.object != mesh2 ) {
+            return intersector;
+          }
+        }
+        return null;
+      }
 
 
-			function render() {
+      function animate() {
+        requestAnimationFrame( animate );
 
-				raycaster = projector.pickingRay( mouse2D.clone(), camera );
+        render();
+        stats.update();
+
+      }
+
+
+      function render() {
+        raycaster = projector.pickingRay( mouse2D.clone(), camera );
         
         var intersects = raycaster.intersectObjects( scene.children );
         
-				if ( intersects.length > 0 ) {
+        if ( intersects.length > 0 ) {
+          intersector = getRealIntersector( intersects );
 
-					intersector = getRealIntersector( intersects );
-
-					if ( intersector ) {
-
-						setVoxelPosition( intersector );
-						//rollOverMesh.position = voxelPosition;
+          if ( intersector ) {
+            setVoxelPosition( intersector );
             pos = getClosestVertice( intersector.object, intersector.point )
-            //var positions = []
+
             var forPos = new Object();
             for(var i = -2; i <= 2; i++) {
               for(var j = -2; j <= 2; j++) {
@@ -523,7 +389,6 @@
                 newPos.z = pos.z + j;
                 var posOnHoverObject = getPositionInGroundArray( forPos, 5 );
                 if(newPos.x >= 0 && newPos.x < 40 && newPos.z >= 0 && newPos.z < 40) {
-                  //positions.push(newPos);
                   posOnGround = getPositionInGroundArray( newPos, 40 );
                   groundX = mesh.geometry.vertices[posOnGround].x;
                   groundY = mesh.geometry.vertices[posOnGround].y;
@@ -533,13 +398,10 @@
                   mesh2.geometry.vertices[posOnHoverObject].z = groundZ;
                 } else {
                   mesh2.geometry.vertices[posOnHoverObject].y = 11;
-                  //positions.push(new Object());
                 }
               }
             }
-
             mesh2.geometry.verticesNeedUpdate = true;
-            //mesh2.position = voxelPosition
         }
 
         } else {
@@ -548,15 +410,12 @@
           rollOverMesh.position.z = -10000;
         }
         
-
-				//controls.update( clock.getDelta() );
         camera.rotation.y = .3;
         camera.lookAt( scene.position );
-				renderer.render( scene, camera );
+        renderer.render( scene, camera );
 
-			}
+      }
 
-		</script>
-
-	</body>
+    </script>
+  </body>
 </html>
